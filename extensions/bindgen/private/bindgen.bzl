@@ -323,9 +323,17 @@ def _rust_bindgen_impl(ctx):
         "-iquote",
         "-isystem",
         "--sysroot",
+        "-isysroot",
+        "-iframework",
+        "-F",
         "--gcc-toolchain",
         "-target",
         "--target",
+        "-arch",
+        "-mmacosx-version-min",
+        "-miphoneos-version-min",
+        "-mwatchos-version-min",
+        "-mtvos-version-min",
         "-W",
         "--system-header-prefix",
         "--no-system-header-prefix",
@@ -347,6 +355,9 @@ def _rust_bindgen_impl(ctx):
     # (as used by bindgen) does not understand, so we want to strip them out. We list them here.
     xclang_flags_to_strip = (
         "-fexperimental-optimized-noescape",
+        "-fobjc-arc",
+        "-fobjc-weak",
+        "-index-store-path",
     )
 
     open_arg = False

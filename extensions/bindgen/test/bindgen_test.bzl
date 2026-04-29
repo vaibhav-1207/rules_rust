@@ -29,6 +29,19 @@ def _fake_cc_toolchain_config_impl(ctx):
                         "there",
                         "-notarget",
                         "idbeholdi",
+                        "-Xclang",
+                        "-fobjc-arc",
+                        "-Xclang",
+                        "-index-store-path",
+                        "-Xclang",
+                        "/path/to/index",
+                        "-isysroot",
+                        "/path/to/sdk",
+                        "-F",
+                        "/path/to/frameworks",
+                        "-arch",
+                        "arm64",
+                        "-mmacosx-version-min=10.15",
                     ]),
                 ],
             ),
@@ -233,6 +246,12 @@ def _test_strip_xclang_impl(env, target):
     env.expect.that_action(target.actions[0]).not_contains_arg(
         "idbeholdi",
     )
+    env.expect.that_action(target.actions[0]).not_contains_arg(
+        "-fobjc-arc",
+    )
+    env.expect.that_action(target.actions[0]).not_contains_arg(
+        "-index-store-path",
+    )
     env.expect.that_action(target.actions[0]).contains_at_least_args(
         ["-Xclang", "-fcolor-diagnostics", "--target=here", "-target", "there"],
     )
@@ -255,6 +274,35 @@ def _test_strip_xclang(name):
         },
     )
 
+def _test_apple_flags_impl(env, target):
+    env.expect.that_int(len(target.actions)).is_greater_than(0)
+    env.expect.that_action(target.actions[0]).mnemonic().contains("RustBindgen")
+    env.expect.that_action(target.actions[0]).contains_at_least_args([
+        "-isysroot",
+        "/path/to/sdk",
+        "-F",
+        "/path/to/frameworks",
+        "-arch",
+        "arm64",
+        "-mmacosx-version-min=10.15",
+    ])
+
+def _test_apple_flags(name):
+    # Test that we preserve certain Apple-specific flags defined by the toolchain.
+
+    _fake_cc_toolchain(name + "_toolchain")
+
+    _create_simple_rust_bindgen_library(name)
+
+    analysis_test(
+        name = name,
+        target = name + "_rust_bindgen__bindgen",
+        impl = _test_apple_flags_impl,
+        config_settings = {
+            "//command_line_option:extra_toolchains": [str(native.package_relative_label(name + "_toolchain"))],
+        },
+    )
+
 def bindgen_test_suite(name):
     test_suite(
         name = name,
@@ -264,5 +312,6 @@ def bindgen_test_suite(name):
             _test_cc_lib_object_merging_disabled,
             _test_resource_dir,
             _test_strip_xclang,
+            _test_apple_flags,
         ],
     )

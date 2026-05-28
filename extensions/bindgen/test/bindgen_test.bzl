@@ -252,6 +252,9 @@ def _test_strip_xclang_impl(env, target):
     env.expect.that_action(target.actions[0]).not_contains_arg(
         "-index-store-path",
     )
+    env.expect.that_action(target.actions[0]).not_contains_arg(
+        "/path/to/index",
+    )
     env.expect.that_action(target.actions[0]).contains_at_least_args(
         ["-Xclang", "-fcolor-diagnostics", "--target=here", "-target", "there"],
     )

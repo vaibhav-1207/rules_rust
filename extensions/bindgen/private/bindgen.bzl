@@ -361,10 +361,10 @@ def _rust_bindgen_impl(ctx):
     )
 
     open_arg = False
-    skip_next = False
+    skip_next = 0
     for idx, arg in enumerate(compile_flags):
-        if skip_next:
-            skip_next = False
+        if skip_next > 0:
+            skip_next -= 1
             continue
 
         if open_arg:
@@ -377,11 +377,18 @@ def _rust_bindgen_impl(ctx):
             args.add(arg)
             continue
 
-        if not arg.startswith(param_flags_known_to_clang) and not arg in paramless_flags_known_to_clang:
+        if arg == "-Xclang" and idx + 1 < len(compile_flags) and compile_flags[idx + 1] in xclang_flags_to_strip:
+            # We skip the "-Xclang" and the next argument.
+            skip_next = 1
+            
+            # If the stripped flag is known to take an argument (like -index-store-path), 
+            # and that argument is also prefixed with -Xclang, skip it too.
+            skipped_flag = compile_flags[idx + 1]
+            if skipped_flag == "-index-store-path" and idx + 3 < len(compile_flags) and compile_flags[idx + 2] == "-Xclang":
+                 skip_next = 3
             continue
 
-        if arg == "-Xclang" and idx + 1 < len(compile_flags) and compile_flags[idx + 1] in xclang_flags_to_strip:
-            skip_next = True
+        if not arg.startswith(param_flags_known_to_clang) and not arg in paramless_flags_known_to_clang:
             continue
 
         args.add(arg)
